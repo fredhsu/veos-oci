@@ -1,0 +1,4 @@
+availabilityDomain = qPIx:PHX-AD-1
+shape = VM.Standard1.1
+name = veos-oci-demo-1
+
