@@ -5,6 +5,7 @@ import ssl
 from time import sleep
 from flask import Flask
 from flask import request
+from flask import jsonify
 from flask_cors import CORS
 from jsonrpclib import Server
 
@@ -16,7 +17,7 @@ from jsonrpclib import Server
 # Use these for personal
 compartment_id = "ocid1.tenancy.oc1..aaaaaaaazco3xpwhyer3ayza5wl6uldqxulyqsdcmnvxykv4fr457n73c5rq"
 subnet_id = "ocid1.subnet.oc1.iad.aaaaaaaah3nz3q5szlpvuwiwdjer6pwzm6ur3mrnxgkt62yosiytemgreihq"
-image_id = "ocid1.image.oc1.iad.aaaaaaaav2tzjs7ycnqr74ormjrlso4pdfsrxwry3jwvfgc6hjxtmkxcbm5a"
+image_id = "ocid1.image.oc1.iad.aaaaaaaacbgdflm66sxcdxriiatfrr27hb5wsy7hwg6wooocpsl7i3gld6ga"
 
 try:
     _create_unverified_https_context = ssl._create_unverified_context
@@ -62,15 +63,17 @@ def create_instance(config, req):
 
 def addInstanceCvp(host_ip):
     print("Adding to CVP : " + host_ip)
-    r = requests.post('http://localhost:8080/routercvp/', data = {'ipAddress':host_ip})
+    r = requests.post('http://localhost:8080/routercvp/', json = {'ipAddress':host_ip})
     return r
 
 def setHostname(host_ip):
     hostname = "veos-oci-" + host_ip.replace('.','-')
+    print("Setting hostname to " + hostname)
     switch = Server("https://cvpadmin:arista123@" + host_ip + "/command-api" )
     response = switch.runCmds( 1, ["enable", 
         "configure", 
-        "hostname " + hostname, 
+        "hostname " + hostname,
+        "ip name-server vrf default 8.8.8.8",
         "interface loopback 0", 
         "ip address " + host_ip + "/32", 
         "no shutdown"])
@@ -91,7 +94,7 @@ def xcreate_instance(config, request):
     request.availability_domain = "DESs:US-ASHBURN-AD-1"
     request.compartment_id = compartment_id
     request.create_vnic_details = create_vnic_details
-    request.shape = "VM.Standard2.1"
+    request.shape = "VM.Standard1.2"
     request.source_details = source_details
     request.display_name = "veos-oci-demo"
 
@@ -116,11 +119,10 @@ def create_router():
         req.availability_domain = request.json['availabilityDomain']
         req.compartment_id = compartment_id
         req.shape = request.json['shape']
-        req.shape = "VM.Standard2.1"
+        req.shape = "VM.Standard1.2"
         req.display_name = request.json['name']
         new_instance = create_instance(config, req)
-        # return jsonify({'task':'complete'}), 201
-        return
+        return jsonify({'task':'complete'}), 201
 
 if __name__ == '__main__':
     print("Running server")
